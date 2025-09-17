@@ -711,17 +711,29 @@
             if (data['subtitle'] || data['description']) mappedConfig.event.subtitle = data['subtitle'] || data['description'];
             if (data['event description'] || data['full description']) mappedConfig.event.description = data['event description'] || data['full description'];
             
-            // Date and time handling
+            // Date and time handling with better parsing
+            let startDate = null;
+            
+            // Try different date/time combinations
             if (data['start date'] && data['start time']) {
                 const dateStr = `${data['start date']} ${data['start time']}`;
-                mappedConfig.event.startDate = new Date(dateStr);
+                startDate = parseDateTime(dateStr);
             } else if (data['start datetime']) {
-                mappedConfig.event.startDate = new Date(data['start datetime']);
+                startDate = parseDateTime(data['start datetime']);
             }
             
-            if (data['duration']) {
-                const duration = parseInt(data['duration']) || 90;
-                mappedConfig.event.endDate = new Date(mappedConfig.event.startDate.getTime() + (duration * 60 * 1000));
+            // If we successfully parsed a date, use it
+            if (startDate && !isNaN(startDate.getTime())) {
+                mappedConfig.event.startDate = startDate;
+                
+                // Calculate end date
+                if (data['duration']) {
+                    const duration = parseInt(data['duration']) || 90;
+                    mappedConfig.event.endDate = new Date(startDate.getTime() + (duration * 60 * 1000));
+                }
+            } else {
+                console.warn('Could not parse date/time from form data:', data);
+                // Keep the default dates if parsing fails
             }
             
             if (data['timezone display']) mappedConfig.event.timezones = data['timezone display'];
@@ -738,6 +750,56 @@
             }
 
             return mappedConfig;
+        }
+
+        function parseDateTime(dateTimeStr) {
+            if (!dateTimeStr) return null;
+            
+            // Try multiple date parsing approaches
+            const attempts = [
+                // Direct parsing
+                () => new Date(dateTimeStr),
+                
+                // Common US formats
+                () => {
+                    const cleaned = dateTimeStr.replace(/\s+/g, ' ').trim();
+                    return new Date(cleaned);
+                },
+                
+                // Handle MM/DD/YYYY format specifically
+                () => {
+                    const parts = dateTimeStr.split(' ');
+                    if (parts.length >= 2) {
+                        const datePart = parts[0];
+                        const timePart = parts.slice(1).join(' ');
+                        
+                        // Try reformatting MM/DD/YYYY to YYYY-MM-DD
+                        if (datePart.includes('/')) {
+                            const [month, day, year] = datePart.split('/');
+                            if (month && day && year) {
+                                const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                                return new Date(`${isoDate} ${timePart}`);
+                            }
+                        }
+                    }
+                    return null;
+                }
+            ];
+            
+            // Try each parsing method
+            for (const attempt of attempts) {
+                try {
+                    const date = attempt();
+                    if (date && !isNaN(date.getTime())) {
+                        return date;
+                    }
+                } catch (e) {
+                    // Continue to next attempt
+                }
+            }
+            
+            console.warn('All date parsing attempts failed for:', dateTimeStr);
+            return null;
         }
 
         // ===========================================
@@ -843,16 +905,18 @@
             // Update page title
             document.title = CONFIG.content.pageTitle;
             
-            // Update header content
-            document.getElementById('eventTitle').textContent = CONFIG.event.title;
-            document.getElementById('eventSubtitle').textContent = CONFIG.event.subtitle;
+            // Update header content - check if elements exist first
+            const titleElement = document.getElementById('eventTitle');
+            const subtitleElement = document.getElementById('eventSubtitle');
+            const passwordElement = document.getElementById('meetingPassword');
+            const additionalInfoElement = document.getElementById('additionalInfo');
+            const timezoneElement = document.getElementById('timezoneInfo');
             
-            // Update meeting details
-            document.getElementById('meetingPassword').textContent = CONFIG.meeting.meetingId;
-            document.getElementById('additionalInfo').innerHTML = CONFIG.content.additionalInfo;
-            
-            // Update timezone display
-            document.getElementById('timezoneInfo').textContent = CONFIG.event.timezones;
+            if (titleElement) titleElement.textContent = CONFIG.event.title;
+            if (subtitleElement) subtitleElement.textContent = CONFIG.event.subtitle;
+            if (passwordElement) passwordElement.textContent = CONFIG.meeting.meetingId;
+            if (additionalInfoElement) additionalInfoElement.innerHTML = CONFIG.content.additionalInfo;
+            if (timezoneElement) timezoneElement.textContent = CONFIG.event.timezones;
             
             // Update date/time display
             updateDisplayedDateTime();
@@ -861,54 +925,76 @@
             checkLiveStatus();
             
             // Show the container
-            document.getElementById('mainContainer').classList.add('loaded');
+            const mainContainer = document.getElementById('mainContainer');
+            if (mainContainer) {
+                mainContainer.classList.add('loaded');
+            }
         }
 
         function updateDisplayedDateTime() {
-            const options = { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                timeZone: CONFIG.settings.timeZone
-            };
-            const dateStr = CONFIG.event.startDate.toLocaleDateString('en-US', options);
-            const timeStr = CONFIG.event.startDate.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                timeZoneName: 'short',
-                timeZone: CONFIG.settings.timeZone
-            });
+            const dateTimeElement = document.getElementById('eventDateTime');
+            if (!dateTimeElement) return;
             
-            document.getElementById('eventDateTime').textContent = `${dateStr} @ ${timeStr}`;
+            try {
+                const options = { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    timeZone: CONFIG.settings.timeZone
+                };
+                const dateStr = CONFIG.event.startDate.toLocaleDateString('en-US', options);
+                const timeStr = CONFIG.event.startDate.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    timeZoneName: 'short',
+                    timeZone: CONFIG.settings.timeZone
+                });
+                
+                dateTimeElement.textContent = `${dateStr} @ ${timeStr}`;
+            } catch (error) {
+                console.error('Error updating date/time display:', error);
+                dateTimeElement.textContent = 'Date/Time Loading...';
+            }
         }
 
         function checkLiveStatus() {
-            const now = new Date();
-            const startTime = new Date(CONFIG.event.startDate.getTime() - CONFIG.settings.sessionBuffer);
-            const endTime = new Date(CONFIG.event.endDate.getTime() + CONFIG.settings.sessionBuffer);
-            const isLive = now >= startTime && now <= endTime;
-            
             const liveStatus = document.getElementById('liveStatus');
             const statusText = document.getElementById('statusText');
             const joinBtn = document.getElementById('joinBtn');
             const joinBtnText = document.getElementById('joinBtnText');
 
-            if (isLive) {
-                liveStatus.classList.add('live');
-                statusText.textContent = CONFIG.content.statusLive;
-                joinBtn.classList.add('active');
-                joinBtnText.textContent = CONFIG.content.joinButtonActive;
-            } else if (now < CONFIG.event.startDate) {
-                liveStatus.classList.remove('live');
-                statusText.textContent = CONFIG.content.statusNotLive;
-                joinBtn.classList.remove('active');
-                joinBtnText.textContent = CONFIG.content.joinButtonInactive;
-            } else {
-                liveStatus.classList.remove('live');
-                statusText.textContent = CONFIG.content.statusEnded;
-                joinBtn.classList.remove('active');
-                joinBtnText.textContent = CONFIG.content.joinButtonEnded;
+            // Check if all elements exist before proceeding
+            if (!liveStatus || !statusText || !joinBtn || !joinBtnText) {
+                console.warn('Some status elements not found, skipping status update');
+                return;
+            }
+
+            try {
+                const now = new Date();
+                const startTime = new Date(CONFIG.event.startDate.getTime() - CONFIG.settings.sessionBuffer);
+                const endTime = new Date(CONFIG.event.endDate.getTime() + CONFIG.settings.sessionBuffer);
+                const isLive = now >= startTime && now <= endTime;
+
+                if (isLive) {
+                    liveStatus.classList.add('live');
+                    statusText.textContent = CONFIG.content.statusLive;
+                    joinBtn.classList.add('active');
+                    joinBtnText.textContent = CONFIG.content.joinButtonActive;
+                } else if (now < CONFIG.event.startDate) {
+                    liveStatus.classList.remove('live');
+                    statusText.textContent = CONFIG.content.statusNotLive;
+                    joinBtn.classList.remove('active');
+                    joinBtnText.textContent = CONFIG.content.joinButtonInactive;
+                } else {
+                    liveStatus.classList.remove('live');
+                    statusText.textContent = CONFIG.content.statusEnded;
+                    joinBtn.classList.remove('active');
+                    joinBtnText.textContent = CONFIG.content.joinButtonEnded;
+                }
+            } catch (error) {
+                console.error('Error updating live status:', error);
+                statusText.textContent = 'Status Loading...';
             }
         }
 

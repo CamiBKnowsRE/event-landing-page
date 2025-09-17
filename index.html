@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Live Training</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-pink: #FFC5D3;
+            --brand-blue: #004aad;
+            --brand-white: #FFFFFF;
+            --brand-gold: #d5af37;
+            --text-dark: #333333;
+            --text-light: #666666;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: linear-gradient(135deg, var(--brand-blue) 0%, #0066cc 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-dark);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--brand-blue) 0%, #0066cc 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--brand-white);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--brand-white);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .container {
+            background: var(--brand-white);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 74, 173, 0.3);
+            padding: 50px 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+
+        .container.loaded {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, var(--brand-pink), var(--brand-gold), var(--brand-blue));
+        }
+
+        .admin-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--brand-gold);
+            color: var(--brand-blue);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .admin-toggle:hover {
+            transform: scale(1.05);
+        }
+
+        .admin-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .admin-content {
+            background: var(--brand-white);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .admin-content h3 {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--brand-blue);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--brand-blue);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--brand-blue);
+        }
+
+        .admin-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .admin-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .admin-btn.primary {
+            background: var(--brand-blue);
+            color: white;
+        }
+
+        .admin-btn.secondary {
+            background: #ddd;
+            color: var(--text-dark);
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--brand-blue);
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            font-weight: 400;
+        }
+
+        .event-details {
+            background: linear-gradient(135deg, var(--brand-pink) 0%, #ffb3c6 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .event-details::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(213, 175, 55, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .date-time {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--brand-blue);
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+        }
+
+        .timezone-info {
+            font-size: 1rem;
+            color: var(--brand-blue);
+            font-weight: 600;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .live-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--brand-white);
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-top: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .live-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 2s infinite;
+        }
+
+        .live-status.live .live-dot {
+            background: #00cc44;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .buttons-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 40px 0;
+        }
+
+        .btn {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 18px 30px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-calendar {
+            background: linear-gradient(135deg, var(--brand-gold) 0%, #e6c451 100%);
+            color: var(--brand-blue);
+            box-shadow: 0 6px 20px rgba(213, 175, 55, 0.3);
+        }
+
+        .btn-calendar:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(213, 175, 55, 0.4);
+        }
+
+        .btn-join {
+            background: var(--brand-blue);
+            color: var(--brand-white);
+            box-shadow: 0 6px 20px rgba(0, 74, 173, 0.3);
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-join.active {
+            background: linear-gradient(135deg, #00cc44 0%, #00aa37 100%);
+            opacity: 1;
+            cursor: pointer;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .btn-join.active:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 204, 68, 0.4);
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 6px 20px rgba(0, 204, 68, 0.3); }
+            to { box-shadow: 0 6px 30px rgba(0, 204, 68, 0.6); }
+        }
+
+        .meeting-details {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+            border-left: 5px solid var(--brand-gold);
+        }
+
+        .meeting-details h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.3rem;
+            color: var(--brand-blue);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .password-info {
+            background: var(--brand-white);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 2px dashed var(--brand-pink);
+        }
+
+        .password-label {
+            font-weight: 700;
+            color: var(--brand-blue);
+            margin-bottom: 8px;
+        }
+
+        .password-value {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--brand-gold);
+            letter-spacing: 2px;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .error-message {
+            background: #ff4444;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 25px;
+                margin: 10px;
+            }
+
+            .title {
+                font-size: 2rem;
+            }
+
+            .date-time {
+                font-size: 1.5rem;
+            }
+
+            .btn {
+                font-size: 1rem;
+                padding: 16px 25px;
+            }
+
+            .buttons-container {
+                gap: 12px;
+            }
+
+            .admin-toggle {
+                top: 10px;
+                right: 10px;
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .buttons-container {
+                flex-direction: row;
+            }
+
+            .btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading Event Details...</div>
+    </div>
+
+    <!-- Admin Toggle Button -->
+    <button class="admin-toggle" onclick="toggleAdminPanel()">⚙️ Settings</button>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="admin-content">
+            <h3>Event Configuration</h3>
+            <div class="form-group">
+                <label for="dataSource">Data Source:</label>
+                <select id="dataSource" onchange="handleDataSourceChange()">
+                    <option value="manual">Manual Entry</option>
+                    <option value="sheets">Google Sheets</option>
+                </select>
+            </div>
+            
+            <div id="sheetsConfig" style="display: none;">
+                <div class="form-group">
+                    <label for="sheetsUrl">Google Sheets CSV URL:</label>
+                    <input type="url" id="sheetsUrl" placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv">
+                    <small style="color: #666; font-size: 12px;">
+                        Get this URL by: File → Share → Publish to web → CSV format
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="responseRow">Response Row (1-based):</label>
+                    <input type="number" id="responseRow" value="2" min="2">
+                    <small style="color: #666; font-size: 12px;">
+                        Row 1 = headers, Row 2 = first response, etc.
+                    </small>
+                </div>
+            </div>
+
+            <div id="manualConfig">
+                <div class="form-group">
+                    <label for="eventTitle">Event Title:</label>
+                    <input type="text" id="eventTitle" value="Live Training Session">
+                </div>
+                <div class="form-group">
+                    <label for="eventSubtitle">Subtitle:</label>
+                    <input type="text" id="eventSubtitle" value="Transform Your Skills with Expert-Led Sessions">
+                </div>
+                <div class="form-group">
+                    <label for="startDateTime">Start Date & Time:</label>
+                    <input type="datetime-local" id="startDateTime">
+                </div>
+                <div class="form-group">
+                    <label for="duration">Duration (minutes):</label>
+                    <input type="number" id="duration" value="90" min="15" max="480">
+                </div>
+                <div class="form-group">
+                    <label for="meetingUrl">Google Meet URL:</label>
+                    <input type="url" id="meetingUrl" placeholder="https://meet.google.com/abc-defg-hij">
+                </div>
+                <div class="form-group">
+                    <label for="meetingId">Meeting ID/Password:</label>
+                    <input type="text" id="meetingId" value="training-2024">
+                </div>
+            </div>
+
+            <div class="admin-buttons">
+                <button class="admin-btn secondary" onclick="closeAdminPanel()">Cancel</button>
+                <button class="admin-btn primary" onclick="saveConfiguration()">Save & Update</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container" id="mainContainer">
+        <div class="header">
+            <h1 class="title" id="eventTitle">Live Training Session</h1>
+            <p class="subtitle" id="eventSubtitle">Transform Your Skills with Expert-Led Sessions</p>
+        </div>
+
+        <div class="event-details">
+            <div class="date-time" id="eventDateTime">
+                Loading...
+            </div>
+            <div class="timezone-info" id="timezoneInfo">
+                11am PT // 12pm MT // 1pm CT // 2pm ET
+            </div>
+            <div class="live-status" id="liveStatus">
+                <div class="live-dot"></div>
+                <span id="statusText">Loading...</span>
+            </div>
+        </div>
+
+        <div class="buttons-container">
+            <button class="btn btn-calendar" onclick="addToCalendar()">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                </svg>
+                Add to Calendar
+            </button>
+            
+            <button class="btn btn-join" id="joinBtn" onclick="joinMeeting()">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                </svg>
+                <span id="joinBtnText">Join Meeting When Live</span>
+            </button>
+        </div>
+
+        <div class="meeting-details">
+            <h3>Meeting Information</h3>
+            <div class="password-info">
+                <div class="password-label">Meeting ID / Password:</div>
+                <div class="password-value" id="meetingPassword">loading...</div>
+            </div>
+            <p id="additionalInfo" style="color: var(--text-light); font-size: 0.95rem; line-height: 1.6; margin-top: 15px;">
+                <strong>Join by Phone:</strong> You can also join via phone by calling the number provided in your calendar invite.
+                <br><br>
+                <strong>Technical Support:</strong> If you experience any issues joining, please contact our support team.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // ===========================================
+        // GOOGLE SHEETS INTEGRATION CONFIGURATION
+        // ===========================================
+        
+        // Default configuration - will be overridden by Google Sheets data
+        let CONFIG = {
+            event: {
+                title: "Live Training Session",
+                subtitle: "Transform Your Skills with Expert-Led Sessions",
+                description: "Join us for an exclusive live training session where you'll learn cutting-edge strategies and techniques from industry experts.",
+                startDate: new Date('2024-09-16T14:00:00-04:00'),
+                endDate: new Date('2024-09-16T15:30:00-04:00'),
+                timezones: "11am PT // 12pm MT // 1pm CT // 2pm ET"
+            },
+            meeting: {
+                platform: "Google Meet",
+                meetingUrl: "https://meet.google.com/abc-defg-hij",
+                meetingId: "training-2024",
+                phoneNumber: "+1-555-123-4567",
+                supportEmail: "support@yourcompany.com"
+            },
+            content: {
+                pageTitle: "Join Live Training",
+                calendarButtonText: "Add to Calendar",
+                joinButtonInactive: "Join Meeting When Live",
+                joinButtonActive: "Join Live Meeting Now",
+                joinButtonEnded: "Session Completed",
+                statusNotLive: "Not Live Yet",
+                statusLive: "We're LIVE right now!",
+                statusEnded: "Session Ended",
+                meetingDetailsTitle: "Meeting Information",
+                passwordLabel: "Meeting ID / Password:",
+                additionalInfo: `
+                    <strong>Join by Phone:</strong> You can also join via phone by calling the number provided in your calendar invite.
+                    <br><br>
+                    <strong>Technical Support:</strong> If you experience any issues joining, please contact our support team.
+                `
+            },
+            settings: {
+                statusCheckInterval: 30000,
+                timeZone: 'America/New_York',
+                sessionBuffer: 300000,
+                enablePhoneJoin: true,
+                enableSupportInfo: true
+            }
+        };
+
+        // App state
+        let appState = {
+            dataSource: localStorage.getItem('dataSource') || 'manual',
+            sheetsUrl: localStorage.getItem('sheetsUrl') || '',
+            responseRow: parseInt(localStorage.getItem('responseRow')) || 2,
+            lastFetch: null,
+            statusInterval: null
+        };
+
+        // ===========================================
+        // GOOGLE SHEETS DATA FETCHING
+        // ===========================================
+
+        async function fetchGoogleSheetsData() {
+            if (!appState.sheetsUrl) {
+                throw new Error('No Google Sheets URL configured');
+            }
+
+            try {
+                const response = await fetch(appState.sheetsUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                return parseCSVData(csvText);
+            } catch (error) {
+                console.error('Error fetching Google Sheets data:', error);
+                throw error;
+            }
+        }
+
+        function parseCSVData(csvText) {
+            const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
+            if (lines.length < appState.responseRow) {
+                throw new Error(`Not enough rows in the sheet. Need row ${appState.responseRow}, but only ${lines.length} rows found.`);
+            }
+
+            const headers = parseCSVLine(lines[0]);
+            const dataRow = parseCSVLine(lines[appState.responseRow - 1]);
+
+            const data = {};
+            headers.forEach((header, index) => {
+                data[header.toLowerCase().trim()] = dataRow[index] || '';
+            });
+
+            return mapSheetsDataToConfig(data);
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current);
+            return result;
+        }
+
+        function mapSheetsDataToConfig(data) {
+            // Map Google Sheets column names to CONFIG structure
+            const mappedConfig = JSON.parse(JSON.stringify(CONFIG)); // Deep clone
+            
+            // Event details
+            if (data['event title'] || data['title']) mappedConfig.event.title = data['event title'] || data['title'];
+            if (data['subtitle'] || data['description']) mappedConfig.event.subtitle = data['subtitle'] || data['description'];
+            if (data['event description'] || data['full description']) mappedConfig.event.description = data['event description'] || data['full description'];
+            
+            // Date and time handling
+            if (data['start date'] && data['start time']) {
+                const dateStr = `${data['start date']} ${data['start time']}`;
+                mappedConfig.event.startDate = new Date(dateStr);
+            } else if (data['start datetime']) {
+                mappedConfig.event.startDate = new Date(data['start datetime']);
+            }
+            
+            if (data['duration']) {
+                const duration = parseInt(data['duration']) || 90;
+                mappedConfig.event.endDate = new Date(mappedConfig.event.startDate.getTime() + (duration * 60 * 1000));
+            }
+            
+            if (data['timezone display']) mappedConfig.event.timezones = data['timezone display'];
+            
+            // Meeting details
+            if (data['meeting url'] || data['google meet url']) mappedConfig.meeting.meetingUrl = data['meeting url'] || data['google meet url'];
+            if (data['meeting id'] || data['meeting password']) mappedConfig.meeting.meetingId = data['meeting id'] || data['meeting password'];
+            if (data['phone number']) mappedConfig.meeting.phoneNumber = data['phone number'];
+            if (data['support email']) mappedConfig.meeting.supportEmail = data['support email'];
+            
+            // Additional content
+            if (data['additional info'] || data['meeting instructions']) {
+                mappedConfig.content.additionalInfo = data['additional info'] || data['meeting instructions'];
+            }
+
+            return mappedConfig;
+        }
+
+        // ===========================================
+        // ADMIN PANEL FUNCTIONS
+        // ===========================================
+
+        function toggleAdminPanel() {
+            const panel = document.getElementById('adminPanel');
+            const isVisible = panel.style.display === 'flex';
+            
+            if (isVisible) {
+                closeAdminPanel();
+            } else {
+                openAdminPanel();
+            }
+        }
+
+        function openAdminPanel() {
+            const panel = document.getElementById('adminPanel');
+            panel.style.display = 'flex';
+            
+            // Load current settings
+            document.getElementById('dataSource').value = appState.dataSource;
+            document.getElementById('sheetsUrl').value = appState.sheetsUrl;
+            document.getElementById('responseRow').value = appState.responseRow;
+            
+            // Load manual config values
+            document.getElementById('eventTitle').value = CONFIG.event.title;
+            document.getElementById('eventSubtitle').value = CONFIG.event.subtitle;
+            document.getElementById('startDateTime').value = CONFIG.event.startDate.toISOString().slice(0, -1);
+            document.getElementById('duration').value = Math.round((CONFIG.event.endDate - CONFIG.event.startDate) / 60000);
+            document.getElementById('meetingUrl').value = CONFIG.meeting.meetingUrl;
+            document.getElementById('meetingId').value = CONFIG.meeting.meetingId;
+            
+            handleDataSourceChange();
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('adminPanel').style.display = 'none';
+        }
+
+        function handleDataSourceChange() {
+            const dataSource = document.getElementById('dataSource').value;
+            const sheetsConfig = document.getElementById('sheetsConfig');
+            const manualConfig = document.getElementById('manualConfig');
+            
+            if (dataSource === 'sheets') {
+                sheetsConfig.style.display = 'block';
+                manualConfig.style.display = 'none';
+            } else {
+                sheetsConfig.style.display = 'none';
+                manualConfig.style.display = 'block';
+            }
+        }
+
+        async function saveConfiguration() {
+            const dataSource = document.getElementById('dataSource').value;
+            
+            // Save app state
+            appState.dataSource = dataSource;
+            localStorage.setItem('dataSource', dataSource);
+            
+            if (dataSource === 'sheets') {
+                appState.sheetsUrl = document.getElementById('sheetsUrl').value;
+                appState.responseRow = parseInt(document.getElementById('responseRow').value);
+                
+                localStorage.setItem('sheetsUrl', appState.sheetsUrl);
+                localStorage.setItem('responseRow', appState.responseRow.toString());
+                
+                try {
+                    showLoadingOverlay('Fetching data from Google Sheets...');
+                    CONFIG = await fetchGoogleSheetsData();
+                    updatePageContent();
+                    hideLoadingOverlay();
+                    closeAdminPanel();
+                } catch (error) {
+                    hideLoadingOverlay();
+                    alert('Error fetching Google Sheets data: ' + error.message);
+                    return;
+                }
+            } else {
+                // Manual configuration
+                CONFIG.event.title = document.getElementById('eventTitle').value;
+                CONFIG.event.subtitle = document.getElementById('eventSubtitle').value;
+                CONFIG.event.startDate = new Date(document.getElementById('startDateTime').value);
+                
+                const duration = parseInt(document.getElementById('duration').value);
+                CONFIG.event.endDate = new Date(CONFIG.event.startDate.getTime() + (duration * 60 * 1000));
+                
+                CONFIG.meeting.meetingUrl = document.getElementById('meetingUrl').value;
+                CONFIG.meeting.meetingId = document.getElementById('meetingId').value;
+                
+                updatePageContent();
+                closeAdminPanel();
+            }
+        }
+
+        // ===========================================
+        // PAGE UPDATE FUNCTIONS
+        // ===========================================
+
+        function updatePageContent() {
+            // Update page title
+            document.title = CONFIG.content.pageTitle;
+            
+            // Update header content
+            document.getElementById('eventTitle').textContent = CONFIG.event.title;
+            document.getElementById('eventSubtitle').textContent = CONFIG.event.subtitle;
+            
+            // Update meeting details
+            document.getElementById('meetingPassword').textContent = CONFIG.meeting.meetingId;
+            document.getElementById('additionalInfo').innerHTML = CONFIG.content.additionalInfo;
+            
+            // Update timezone display
+            document.getElementById('timezoneInfo').textContent = CONFIG.event.timezones;
+            
+            // Update date/time display
+            updateDisplayedDateTime();
+            
+            // Update live status
+            checkLiveStatus();
+            
+            // Show the container
+            document.getElementById('mainContainer').classList.add('loaded');
+        }
+
+        function updateDisplayedDateTime() {
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                timeZone: CONFIG.settings.timeZone
+            };
+            const dateStr = CONFIG.event.startDate.toLocaleDateString('en-US', options);
+            const timeStr = CONFIG.event.startDate.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                timeZoneName: 'short',
+                timeZone: CONFIG.settings.timeZone
+            });
+            
+            document.getElementById('eventDateTime').textContent = `${dateStr} @ ${timeStr}`;
+        }
+
+        function checkLiveStatus() {
+            const now = new Date();
+            const startTime = new Date(CONFIG.event.startDate.getTime() - CONFIG.settings.sessionBuffer);
+            const endTime = new Date(CONFIG.event.endDate.getTime() + CONFIG.settings.sessionBuffer);
+            const isLive = now >= startTime && now <= endTime;
+            
+            const liveStatus = document.getElementById('liveStatus');
+            const statusText = document.getElementById('statusText');
+            const joinBtn = document.getElementById('joinBtn');
+            const joinBtnText = document.getElementById('joinBtnText');
+
+            if (isLive) {
+                liveStatus.classList.add('live');
+                statusText.textContent = CONFIG.content.statusLive;
+                joinBtn.classList.add('active');
+                joinBtnText.textContent = CONFIG.content.joinButtonActive;
+            } else if (now < CONFIG.event.startDate) {
+                liveStatus.classList.remove('live');
+                statusText.textContent = CONFIG.content.statusNotLive;
+                joinBtn.classList.remove('active');
+                joinBtnText.textContent = CONFIG.content.joinButtonInactive;
+            } else {
+                liveStatus.classList.remove('live');
+                statusText.textContent = CONFIG.content.statusEnded;
+                joinBtn.classList.remove('active');
+                joinBtnText.textContent = CONFIG.content.joinButtonEnded;
+            }
+        }
+
+        function addToCalendar() {
+            const startTime = CONFIG.event.startDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            const endTime = CONFIG.event.endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            
+            let calendarDetails = `${CONFIG.event.description}\n\nJoin via ${CONFIG.meeting.platform}: ${CONFIG.meeting.meetingUrl}\nMeeting ID: ${CONFIG.meeting.meetingId}`;
+            
+            if (CONFIG.meeting.phoneNumber) {
+                calendarDetails += `\nPhone: ${CONFIG.meeting.phoneNumber}`;
+            }
+            
+            const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(CONFIG.event.title)}&dates=${startTime}/${endTime}&details=${encodeURIComponent(calendarDetails)}&location=${encodeURIComponent(CONFIG.meeting.meetingUrl)}`;
+            
+            window.open(googleCalendarUrl, '_blank');
+        }
+
+        function joinMeeting() {
+            const joinBtn = document.getElementById('joinBtn');
+            if (joinBtn.classList.contains('active')) {
+                window.open(CONFIG.meeting.meetingUrl, '_blank');
+            }
+        }
+
+        // ===========================================
+        // LOADING OVERLAY FUNCTIONS
+        // ===========================================
+
+        function showLoadingOverlay(message = 'Loading...') {
+            const overlay = document.getElementById('loadingOverlay');
+            const text = overlay.querySelector('.loading-text');
+            text.textContent = message;
+            overlay.classList.remove('hidden');
+        }
+
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.add('hidden');
+        }
+
+        // ===========================================
+        // AUTO-REFRESH FUNCTIONALITY
+        // ===========================================
+
+        async function autoRefreshData() {
+            if (appState.dataSource === 'sheets' && appState.sheetsUrl) {
+                try {
+                    const newConfig = await fetchGoogleSheetsData();
+                    const configChanged = JSON.stringify(CONFIG) !== JSON.stringify(newConfig);
+                    
+                    if (configChanged) {
+                        CONFIG = newConfig;
+                        updatePageContent();
+                        console.log('Event data updated from Google Sheets');
+                    }
+                } catch (error) {
+                    console.error('Auto-refresh failed:', error);
+                }
+            }
+        }
+
+        // ===========================================
+        // INITIALIZATION
+        // ===========================================
+
+        async function initializeApp() {
+            showLoadingOverlay('Loading Event Details...');
+            
+            try {
+                // Load data based on saved preferences
+                if (appState.dataSource === 'sheets' && appState.sheetsUrl) {
+                    CONFIG = await fetchGoogleSheetsData();
+                }
+                
+                updatePageContent();
+                
+                // Set up recurring status checks
+                if (appState.statusInterval) {
+                    clearInterval(appState.statusInterval);
+                }
+                appState.statusInterval = setInterval(checkLiveStatus, CONFIG.settings.statusCheckInterval);
+                
+                // Set up auto-refresh for Google Sheets (every 5 minutes)
+                setInterval(autoRefreshData, 5 * 60 * 1000);
+                
+                hideLoadingOverlay();
+                
+            } catch (error) {
+                hideLoadingOverlay();
+                console.error('Initialization failed:', error);
+                
+                // Show error and fall back to manual config
+                const container = document.getElementById('mainContainer');
+                container.innerHTML = `
+                    <div class="error-message">
+                        <h3>⚠️ Configuration Error</h3>
+                        <p>${error.message}</p>
+                        <p>Please check your Google Sheets URL or switch to manual entry.</p>
+                        <button onclick="toggleAdminPanel()" style="margin-top: 10px; padding: 10px 20px; background: white; border: none; border-radius: 5px; cursor: pointer;">
+                            Open Settings
+                        </button>
+                    </div>
+                `;
+                container.classList.add('loaded');
+            }
+        }
+
+        // Start the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        // Handle page visibility change to refresh data when user returns
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && appState.dataSource === 'sheets') {
+                autoRefreshData();
+            }
+        });
+    </script>
+</body>
+</html>
